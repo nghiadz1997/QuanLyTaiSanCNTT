@@ -58,6 +58,8 @@ function initDataSync() {
     // Ink Requests
     onSnapshot(collection(db, 'artifacts', APP_ID, 'public', 'data', 'ink_requests'), (snap) => {
         inkRequests = snap.docs.map(d => ({ firestoreId: d.id, ...d.data() }));
+        // Sắp xếp yêu cầu mới nhất lên đầu
+        inkRequests.sort((a, b) => new Date(b.datePropose) - new Date(a.datePropose));
         renderInkTable();
         renderInkStats();
     });
@@ -83,9 +85,10 @@ window.removeLog = (index) => {
 
 function renderModalLogs() {
     const list = document.getElementById('modal-logs-list');
+    if (!list) return;
     list.innerHTML = currentLogs.map((log, i) => `
         <div class="flex justify-between items-center bg-white p-2 rounded-lg border border-slate-100 shadow-sm mb-1">
-            <div class="text-[10px] font-bold text-slate-700">
+            <div class="text-[10px] font-bold text-slate-700 text-left">
                 <span class="text-indigo-500 mr-2">${log.date}</span> ${log.text}
             </div>
             <button type="button" onclick="removeLog(${i})" class="text-rose-400 hover:text-rose-600 px-2"><i class="fa-solid fa-xmark"></i></button>
@@ -214,7 +217,7 @@ window.showAssetDetail = (asset) => {
     const historyList = document.getElementById('view-history-list');
     if (asset.history && asset.history.length) {
         historyList.innerHTML = asset.history.map(log => `
-            <div class="p-3 bg-white border border-slate-100 rounded-xl shadow-sm text-xs">
+            <div class="p-3 bg-white border border-slate-100 rounded-xl shadow-sm text-xs text-left">
                 <span class="font-black text-indigo-500 mr-2">${log.date}</span>
                 <span class="text-slate-600 font-medium">${log.text}</span>
             </div>
@@ -249,13 +252,14 @@ window.saveInkRequest = async () => {
         dept: document.getElementById('ink-dept').value,
         user: document.getElementById('ink-user').value,
         model: document.getElementById('ink-model').value,
-        type: document.getElementById('ink-type-input').value,
+        type: document.getElementById('ink-type-input').value.trim().toUpperCase(),
         status: document.getElementById('ink-date-fill').value ? 'Completed' : 'Pending'
     };
     try {
         await addDoc(collection(db, 'artifacts', APP_ID, 'public', 'data', 'ink_requests'), data);
         showToast("Đã ghi nhận yêu cầu nạp mực");
         f.reset();
+        document.getElementById('ink-date-propose').valueAsDate = new Date();
     } catch (err) { showToast("Lỗi hệ thống"); }
 };
 
@@ -283,35 +287,37 @@ window.renderTable = () => {
     });
 
     if (filtered.length === 0) {
-        document.getElementById('no-data').classList.remove('hidden');
+        const noData = document.getElementById('no-data');
+        if (noData) noData.classList.remove('hidden');
         return;
     }
-    document.getElementById('no-data').classList.add('hidden');
+    const noData = document.getElementById('no-data');
+    if (noData) noData.classList.add('hidden');
 
     filtered.forEach(a => {
         const stCls = a.status === 'Active' ? 'bg-emerald-50 text-emerald-600' : (a.status === 'Repair' ? 'bg-amber-50 text-amber-600' : (a.status === 'Disposal' ? 'bg-rose-50 text-rose-600' : 'bg-slate-50 text-slate-400'));
         tbody.innerHTML += `
-            <tr class="hover:bg-slate-50 transition border-b border-slate-50">
-                <td class="px-8 py-5">
+            <tr class="hover:bg-slate-50 transition border-b border-slate-50 text-left">
+                <td class="px-8 py-5 text-left">
                     <div class="text-[10px] font-black text-blue-500 font-mono mb-1 uppercase tracking-widest">${a.code}</div>
                     <div class="font-black text-slate-800 tracking-tight text-base cursor-pointer" onclick='showAssetDetail(${JSON.stringify(a).replace(/'/g, "&apos;")})'>${a.name}</div>
                 </td>
-                <td class="px-8 py-5">
+                <td class="px-8 py-5 text-left">
                     <div class="font-bold text-slate-700">${a.user || '-'}</div>
                     <div class="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">${a.position || '-'}</div>
                 </td>
-                <td class="px-8 py-5">
+                <td class="px-8 py-5 text-left">
                     <div class="text-xs font-black text-slate-600">${getAssetTypeLabel(a.type)}</div>
                     <div class="text-[10px] font-bold text-slate-400 mt-1 uppercase italic">${a.dept}</div>
                 </td>
                 <td class="px-8 py-5 text-center">
                     <button onclick='showAssetDetail(${JSON.stringify(a).replace(/'/g, "&apos;")})' class="w-10 h-10 rounded-xl bg-slate-50 text-slate-300 hover:text-blue-600 transition border border-slate-100"><i class="fa-solid fa-qrcode"></i></button>
                 </td>
-                <td class="px-8 py-5">
+                <td class="px-8 py-5 text-left">
                     <span class="px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest ${stCls}">${a.status === 'Disposal' ? 'Đã Thanh Lý' : a.status}</span>
                 </td>
                 <td class="px-8 py-5 text-right admin-only-cell ${userRole !== 'admin' ? 'hidden' : ''}">
-                    <div class="flex justify-end gap-2">
+                    <div class="flex justify-end gap-2 text-right">
                         <button onclick="editAsset('${a.id}')" class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600"><i class="fa-solid fa-pen text-[10px]"></i></button>
                         <button onclick="deleteAsset('${a.firestoreId}')" class="w-8 h-8 rounded-lg bg-rose-50 text-rose-500"><i class="fa-solid fa-trash text-[10px]"></i></button>
                     </div>
@@ -324,26 +330,53 @@ window.renderTable = () => {
 function renderInkTable() {
     const tbody = document.getElementById('ink-table-body');
     if (!tbody) return;
-    tbody.innerHTML = inkRequests.map(r => `
-        <tr class="border-b border-slate-50">
-            <td class="px-6 py-4 font-bold text-slate-800">${r.datePropose}</td>
-            <td class="px-6 py-4">
-                <div class="font-black text-slate-700 text-left">${r.dept}</div>
-                <div class="text-[10px] text-slate-400 uppercase tracking-tight text-left">${r.user}</div>
-            </td>
-            <td class="px-6 py-4 text-left">
-                <div class="font-bold text-blue-600 uppercase">${r.model}</div>
-                <div class="text-[10px] font-bold text-slate-400 uppercase">Loại: ${r.type}</div>
-            </td>
-            <td class="px-6 py-4 text-center">
-                <span class="px-3 py-1 rounded-full text-[9px] font-black uppercase ${r.status === 'Completed' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}">${r.status === 'Completed' ? 'Đã nạp' : 'Chờ nạp'}</span>
-            </td>
-            <td class="px-6 py-4 text-right admin-only-cell">
-                <button onclick="deleteInkRequest('${r.firestoreId}')" class="text-rose-400 hover:text-rose-600"><i class="fa-solid fa-trash"></i></button>
-            </td>
-        </tr>
-    `).join('');
+
+    // Lấy giá trị lọc từ các ô search/filter trong tab nạp mực
+    const searchVal = (document.getElementById('ink-search-input')?.value || "").toLowerCase();
+    const deptFilter = document.getElementById('ink-filter-dept')?.value || "";
+
+    const filteredInk = inkRequests.filter(r => {
+        const str = (r.user + r.model + r.type + r.dept).toLowerCase();
+        const matchSearch = str.includes(searchVal);
+        const matchDept = !deptFilter || r.dept === deptFilter;
+        return matchSearch && matchDept;
+    });
+
+    tbody.innerHTML = filteredInk.map(r => {
+        const isCompleted = r.status === 'Completed';
+        const statusText = isCompleted ? 'Đã Hoàn Tất' : 'Đã Đề Xuất';
+        const statusClass = isCompleted ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600 border border-amber-200';
+        
+        return `
+            <tr class="border-b border-slate-50 text-left hover:bg-slate-50/50 transition">
+                <td class="px-6 py-4">
+                    <div class="font-bold text-slate-800">${r.datePropose}</div>
+                    ${r.dateFill ? `<div class="text-[10px] text-emerald-500 font-black mt-1 uppercase italic tracking-tighter">Hoàn thành: ${r.dateFill}</div>` : ''}
+                </td>
+                <td class="px-6 py-4">
+                    <div class="font-black text-slate-700 text-left uppercase text-[11px]">${r.dept}</div>
+                    <div class="text-[10px] text-slate-400 font-bold uppercase tracking-tight text-left italic">${r.user}</div>
+                </td>
+                <td class="px-6 py-4 text-left">
+                    <div class="font-bold text-blue-600 uppercase tracking-tighter">${r.model}</div>
+                    <div class="text-[10px] font-bold text-slate-400 uppercase">Mã: ${r.type}</div>
+                </td>
+                <td class="px-6 py-4 text-center">
+                    <span class="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${statusClass}">
+                        ${statusText}
+                    </span>
+                </td>
+                <td class="px-6 py-4 text-right admin-only-cell ${userRole !== 'admin' ? 'hidden' : ''}">
+                    <button onclick="deleteInkRequest('${r.firestoreId}')" class="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 shadow-sm transition hover:bg-rose-500 hover:text-white"><i class="fa-solid fa-trash text-[10px]"></i></button>
+                </td>
+            </tr>
+        `;
+    }).join('');
 }
+
+window.filterInkRequests = () => {
+    renderInkTable();
+};
 
 // --- AUTH & NAVIGATION ---
 window.handleLogin = () => {
@@ -355,8 +388,10 @@ window.handleLogin = () => {
         showToast("Đã đăng nhập quyền Admin");
     } else {
         const err = document.getElementById('login-error');
-        err.innerText = "Sai thông tin đăng nhập!";
-        err.classList.remove('hidden');
+        if (err) {
+            err.innerText = "Sai thông tin đăng nhập!";
+            err.classList.remove('hidden');
+        }
     }
 };
 
@@ -364,10 +399,16 @@ function proceedAs(role) {
     userRole = role;
     localStorage.setItem('nsg_role', role);
     document.body.classList.toggle('is-admin', role === 'admin');
-    document.getElementById('user-name').innerText = role === 'admin' ? 'QUẢN TRỊ VIÊN' : 'KHÁCH TRUY CẬP';
-    document.getElementById('user-role').innerText = role.toUpperCase();
-    document.getElementById('btn-login-trigger').classList.toggle('hidden', role === 'admin');
-    document.getElementById('btn-logout').classList.toggle('hidden', role !== 'admin');
+    const nameEl = document.getElementById('user-name');
+    const roleEl = document.getElementById('user-role');
+    const loginBtn = document.getElementById('btn-login-trigger');
+    const logoutBtn = document.getElementById('btn-logout');
+
+    if (nameEl) nameEl.innerText = role === 'admin' ? 'QUẢN TRỊ VIÊN' : 'KHÁCH TRUY CẬP';
+    if (roleEl) roleEl.innerText = role.toUpperCase();
+    if (loginBtn) loginBtn.classList.toggle('hidden', role === 'admin');
+    if (logoutBtn) logoutBtn.classList.toggle('hidden', role !== 'admin');
+    
     renderTable();
     renderDeptList();
     renderInkTable();
@@ -394,52 +435,89 @@ window.deleteDept = async (idx) => {
 };
 
 // --- UI UTILS ---
-window.showLogin = () => document.getElementById('login-screen').classList.add('modal-active');
-window.hideLogin = () => document.getElementById('login-screen').classList.remove('modal-active');
+window.showLogin = () => {
+    const el = document.getElementById('login-screen');
+    if (el) el.classList.add('modal-active');
+};
+window.hideLogin = () => {
+    const el = document.getElementById('login-screen');
+    if (el) el.classList.remove('modal-active');
+};
 window.openModal = (isEdit = false) => {
-    document.getElementById('asset-modal').classList.remove('hidden');
-    document.getElementById('asset-modal').classList.add('flex');
+    const el = document.getElementById('asset-modal');
+    if (el) {
+        el.classList.remove('hidden');
+        el.classList.add('flex');
+    }
     if (!isEdit) {
-        document.getElementById('asset-form').reset();
+        const form = document.getElementById('asset-form');
+        if (form) form.reset();
         document.getElementById('asset-firestore-id').value = '';
         document.getElementById('asset-id').value = '';
         document.getElementById('input-code').value = 'AS-' + Math.random().toString(36).substr(2, 6).toUpperCase();
-        document.getElementById('modal-qr-section').classList.add('hidden');
-        document.getElementById('input-date').valueAsDate = new Date();
+        const qrSection = document.getElementById('modal-qr-section');
+        if (qrSection) qrSection.classList.add('hidden');
+        const dateInput = document.getElementById('input-date');
+        if (dateInput) dateInput.valueAsDate = new Date();
         currentLogs = [];
         renderModalLogs();
         toggleSpecFields();
     }
 };
-window.closeModal = () => document.getElementById('asset-modal').classList.add('hidden');
+window.closeModal = () => {
+    const el = document.getElementById('asset-modal');
+    if (el) el.classList.add('hidden');
+};
 window.closeDetailModal = () => { 
-    document.getElementById('detail-modal').classList.add('hidden'); 
+    const el = document.getElementById('detail-modal');
+    if (el) el.classList.add('hidden'); 
     document.body.classList.remove('modal-open');
 };
 window.openDeptModal = (idx = -1) => {
     currentEditDeptIndex = idx;
-    document.getElementById('input-dept-name').value = idx > -1 ? departments[idx] : '';
-    document.getElementById('dept-modal').classList.remove('hidden');
-    document.getElementById('dept-modal').classList.add('flex');
+    const nameInput = document.getElementById('input-dept-name');
+    if (nameInput) nameInput.value = idx > -1 ? departments[idx] : '';
+    const el = document.getElementById('dept-modal');
+    if (el) {
+        el.classList.remove('hidden');
+        el.classList.add('flex');
+    }
 };
-window.closeDeptModal = () => document.getElementById('dept-modal').classList.add('hidden');
+window.closeDeptModal = () => {
+    const el = document.getElementById('dept-modal');
+    if (el) el.classList.add('hidden');
+};
 
 window.switchTab = (tab) => {
     document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
-    document.getElementById(`section-${tab}`).classList.add('active');
+    const section = document.getElementById(`section-${tab}`);
+    if (section) section.classList.add('active');
+    
     document.querySelectorAll('nav a').forEach(a => a.classList.remove('sidebar-item-active'));
-    document.getElementById(`nav-${tab}`).classList.add('sidebar-item-active');
-    document.getElementById('page-title').innerText = document.getElementById(`nav-${tab}`).innerText;
+    const nav = document.getElementById(`nav-${tab}`);
+    const title = document.getElementById('page-title');
+    if (nav) {
+        nav.classList.add('sidebar-item-active');
+        if (title) title.innerText = nav.innerText;
+    }
+    
     if (window.innerWidth < 768) toggleMobileSidebar();
 };
 
-window.toggleMobileSidebar = () => document.getElementById('sidebar').classList.toggle('-translate-x-full');
+window.toggleMobileSidebar = () => {
+    const el = document.getElementById('sidebar');
+    if (el) el.classList.toggle('-translate-x-full');
+};
 
 window.toggleSpecFields = () => {
-    const t = document.getElementById('input-type').value;
+    const type = document.getElementById('input-type');
+    if (!type) return;
+    const t = type.value;
     const isPC = t === 'PC' || t === 'Laptop';
-    document.getElementById('specs-container').classList.toggle('hidden', !isPC);
-    document.getElementById('generic-specs-container').classList.toggle('hidden', isPC);
+    const specsContainer = document.getElementById('specs-container');
+    const genericContainer = document.getElementById('generic-specs-container');
+    if (specsContainer) specsContainer.classList.toggle('hidden', !isPC);
+    if (genericContainer) genericContainer.classList.toggle('hidden', isPC);
 };
 
 function getAssetTypeLabel(t) {
@@ -449,13 +527,18 @@ function getAssetTypeLabel(t) {
 
 window.showToast = (m) => {
     const t = document.getElementById('toast');
-    document.getElementById('toast-msg').innerText = m;
-    t.classList.remove('opacity-0', 'translate-y-10');
-    setTimeout(() => t.classList.add('opacity-0', 'translate-y-10'), 3000);
+    const msg = document.getElementById('toast-msg');
+    if (msg) msg.innerText = m;
+    if (t) {
+        t.classList.remove('opacity-0', 'translate-y-10');
+        setTimeout(() => t.classList.add('opacity-0', 'translate-y-10'), 3000);
+    }
 };
 
 window.generateQR = (elId, id) => {
-    const el = document.getElementById(elId); el.innerHTML = '';
+    const el = document.getElementById(elId); 
+    if (!el) return;
+    el.innerHTML = '';
     const url = window.location.href.split('?')[0] + '?assetId=' + id;
     new QRCode(el, { text: url, width: 128, height: 128 });
 };
@@ -464,7 +547,9 @@ window.downloadModalQR = () => {
     const canvas = document.querySelector('#modal-qr-code canvas');
     if (canvas) {
         const a = document.createElement('a');
-        a.download = `QR_${document.getElementById('input-code').value}.png`;
+        const codeInput = document.getElementById('input-code');
+        const code = codeInput ? codeInput.value : 'QR';
+        a.download = `QR_${code}.png`;
         a.href = canvas.toDataURL();
         a.click();
     }
@@ -492,16 +577,25 @@ function renderDashboard() {
         typeData[t] = (typeData[t] || 0) + 1;
         deptData[a.dept] = (deptData[a.dept] || 0) + 1;
     });
-    document.getElementById('stat-total').innerText = assets.length;
-    document.getElementById('stat-active').innerText = stats.Active;
-    document.getElementById('stat-repair').innerText = stats.Repair;
-    document.getElementById('stat-disposal').innerText = stats.Disposal;
+    
+    const totalEl = document.getElementById('stat-total');
+    const activeEl = document.getElementById('stat-active');
+    const repairEl = document.getElementById('stat-repair');
+    const disposalEl = document.getElementById('stat-disposal');
+    
+    if (totalEl) totalEl.innerText = assets.length;
+    if (activeEl) activeEl.innerText = stats.Active;
+    if (repairEl) repairEl.innerText = stats.Repair;
+    if (disposalEl) disposalEl.innerText = stats.Disposal;
+    
     renderBars('type-distribution', typeData);
     renderBars('dept-distribution', deptData);
 }
 
 function renderBars(cid, data) {
-    const container = document.getElementById(cid); container.innerHTML = '';
+    const container = document.getElementById(cid); 
+    if (!container) return;
+    container.innerHTML = '';
     const total = Object.values(data).reduce((a, b) => a + b, 0);
     if (total === 0) return;
     Object.entries(data).forEach(([k, v]) => {
@@ -516,19 +610,29 @@ function renderBars(cid, data) {
 
 function updateSelects() {
     const opts = departments.map(d => `<option value="${d}">${d}</option>`).join('');
+    
+    // Select filter cho Assets
     const fDept = document.getElementById('filter-dept');
     if (fDept) fDept.innerHTML = '<option value="">Tất cả đơn vị</option>' + opts;
+    
+    // Select input trong Form Asset
     const iDept = document.getElementById('input-dept');
     if (iDept) iDept.innerHTML = opts;
+    
+    // Select đơn vị trong Tab Ink (Form tạo)
     const kDept = document.getElementById('ink-dept');
     if (kDept) kDept.innerHTML = opts;
+
+    // Select filter đơn vị trong Tab Ink (Tìm kiếm/Lọc)
+    const inkFilterDept = document.getElementById('ink-filter-dept');
+    if (inkFilterDept) inkFilterDept.innerHTML = '<option value="">Tất cả đơn vị</option>' + opts;
 }
 
 function renderDeptList() {
     const tbody = document.getElementById('dept-table-body');
     if (!tbody) return;
     tbody.innerHTML = departments.map((d, i) => `
-        <tr class="hover:bg-slate-50 transition border-b border-slate-50">
+        <tr class="hover:bg-slate-50 transition border-b border-slate-50 text-left">
             <td class="px-8 py-5 text-xs font-mono text-slate-300">#${i + 1}</td>
             <td class="px-8 py-5 font-black text-slate-700 text-left">${d}</td>
             <td class="px-8 py-5 text-right admin-only-cell">
@@ -540,9 +644,48 @@ function renderDeptList() {
 }
 
 function renderInkStats() {
-    document.getElementById('ink-stat-total').innerText = inkRequests.length;
-    document.getElementById('ink-stat-pending').innerText = inkRequests.filter(r => r.status === 'Pending').length;
-    document.getElementById('ink-stat-done').innerText = inkRequests.filter(r => r.status === 'Completed').length;
+    const totalEl = document.getElementById('ink-stat-total');
+    const pendingEl = document.getElementById('ink-stat-pending');
+    const doneEl = document.getElementById('ink-stat-done');
+    const usageList = document.getElementById('ink-usage-list');
+    
+    if (totalEl) totalEl.innerText = inkRequests.length;
+    if (pendingEl) pendingEl.innerText = inkRequests.filter(r => r.status === 'Pending').length;
+    if (doneEl) doneEl.innerText = inkRequests.filter(r => r.status === 'Completed').length;
+
+    // Logic thống kê loại mực sử dụng - Trình bày dạng danh sách giống ảnh mẫu
+    if (usageList) {
+        const usageMap = {};
+        // Thống kê toàn bộ dữ liệu hoàn thành
+        inkRequests.filter(r => r.status === 'Completed').forEach(r => {
+            const type = (r.type || "KHÁC").toUpperCase();
+            usageMap[type] = (usageMap[type] || 0) + 1;
+        });
+
+        const sortedUsage = Object.entries(usageMap).sort((a, b) => b[1] - a[1]);
+        
+        if (sortedUsage.length === 0) {
+            usageList.innerHTML = `
+                <div class="col-span-full py-10 text-center">
+                    <p class="text-xs text-slate-400 italic">Chưa có dữ liệu thống kê</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Render ra dạng danh sách hàng dọc có đường kẻ và badge số lượng ở cuối
+        usageList.innerHTML = sortedUsage.map(([type, count]) => `
+            <div class="flex justify-between items-center py-4 border-b border-slate-50 last:border-0 px-2 group hover:bg-slate-50/50 transition-all rounded-xl">
+                <div class="flex items-center gap-3">
+                    <div class="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                    <span class="text-[11px] font-black text-slate-600 uppercase tracking-tight">HỘP MỰC ${type}</span>
+                </div>
+                <span class="min-w-[2.5rem] text-center bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-[11px] font-black shadow-sm ring-1 ring-blue-100">
+                    ${count}
+                </span>
+            </div>
+        `).join('');
+    }
 }
 
 window.filterAssets = () => renderTable();
@@ -551,5 +694,6 @@ window.filterAssets = () => renderTable();
 window.onload = () => {
     const savedRole = localStorage.getItem('nsg_role') || 'viewer';
     proceedAs(savedRole);
-    document.getElementById('ink-date-propose').valueAsDate = new Date();
+    const dateInput = document.getElementById('ink-date-propose');
+    if (dateInput) dateInput.valueAsDate = new Date();
 };
