@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="vi" class="h-full bg-gray-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cao Đẳng Bách Khoa Nam Sài Gòn </title>
+    
+    <!-- Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <!-- Link to external CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="h-full text-slate-900">
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] opacity-0 translate-y-10 transition-all duration-500 pointer-events-none">
+        <div class="bg-slate-900 text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-3">
+            <i class="fa-solid fa-circle-check text-emerald-400"></i>
+            <span id="toast-msg" class="text-sm font-bold tracking-tight">Thông báo</span>
+        </div>
+    </div>
+
+    <!-- LOGIN MODAL -->
+    <div id="login-screen" class="fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm transition-all duration-300 opacity-0 pointer-events-none">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden relative border border-white/20 text-center">
+            <button onclick="hideLogin()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition"><i class="fa-solid fa-xmark text-xl"></i></button>
+            <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
+            <div class="mb-8">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-100 text-blue-600 rounded-full mb-4 shadow-inner">
+                    <i class="fa-solid fa-user-shield text-3xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-800 tracking-tight">Đăng nhập Admin</h1>
+                <p class="text-gray-500 text-sm">Quản lý Tài Sản Cao Đẳng Bách Khoa Nam Sài Gòn</p>
+            </div>
+            <div class="space-y-5">
+                <div class="text-left">
+                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1 ml-1">Tài khoản</label>
+                    <input type="text" id="login-user" placeholder="admin" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition">
+                </div>
+                <div class="text-left">
+                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1 ml-1">Mật khẩu</label>
+                    <input type="password" id="login-pass" placeholder="••••••••" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition">
+                </div>
+                <button onclick="handleLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition transform">ĐĂNG NHẬP</button>
+                <div id="login-error" class="text-red-500 text-xs font-medium hidden p-2 bg-red-50 rounded-lg italic"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP STRUCTURE -->
+    <div id="app-container" class="h-full flex flex-col md:flex-row overflow-hidden">
+        
+        <!-- Sidebar -->
+        <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-72 bg-slate-900 text-white transform -translate-x-full md:translate-x-0 md:relative transition-transform duration-300 flex flex-col shadow-2xl border-r border-slate-800">
+            <div class="p-8 border-b border-slate-800/50 flex items-center gap-4">
+                <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg transform rotate-3">
+                    <i class="fa-solid fa-desktop text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-black text-xl leading-none tracking-tighter uppercase">Quản Lý Tài Sản CNTT</h1>
+                    <p class="text-[9px] text-slate-400 uppercase tracking-widest mt-1 font-bold">PHÒNG QTTB&CSVC</p>
+                </div>
+            </div>
+
+            <nav class="flex-1 px-4 py-8 space-y-3 overflow-y-auto">
+                <a href="#" onclick="switchTab('dashboard')" id="nav-dashboard" class="flex items-center gap-4 px-5 py-3.5 rounded-2xl hover:bg-slate-800 transition sidebar-item-active group">
+                    <i class="fa-solid fa-house-chimney w-5 text-center group-hover:scale-110 transition"></i>
+                    <span class="font-semibold text-sm">Trang tổng quan</span>
+                </a>
+                <a href="#" onclick="switchTab('assets')" id="nav-assets" class="flex items-center gap-4 px-5 py-3.5 rounded-2xl hover:bg-slate-800 transition text-slate-400 group">
+                    <i class="fa-solid fa-server w-5 text-center group-hover:scale-110 transition"></i>
+                    <span class="font-semibold text-sm">Danh sách tài sản</span>
+                </a>
+                <a href="#" onclick="switchTab('ink')" id="nav-ink" class="flex items-center gap-4 px-5 py-3.5 rounded-2xl hover:bg-slate-800 transition text-slate-400 group">
+                    <i class="fa-solid fa-fill-drip w-5 text-center group-hover:scale-110 transition"></i>
+                    <span class="font-semibold text-sm">Quản lý mực in</span>
+                </a>
+                <a href="#" onclick="switchTab('departments')" id="nav-departments" class="admin-only flex items-center gap-4 px-5 py-3.5 rounded-2xl hover:bg-slate-800 transition text-slate-400 group">
+                    <i class="fa-solid fa-building-user w-5 text-center group-hover:scale-110 transition"></i>
+                    <span class="font-semibold text-sm">Phòng ban đơn vị</span>
+                </a>
+            </nav>
+
+            <div class="p-6 border-t border-slate-800/50">
+                <div class="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-5 shadow-inner">
+                    <div class="flex items-center gap-4 mb-4">
+                        <div id="user-avatar" class="w-10 h-10 bg-slate-700 rounded-xl flex items-center justify-center font-black text-sm uppercase ring-2 ring-slate-600">V</div>
+                        <div class="overflow-hidden text-left">
+                            <p id="user-name" class="font-bold text-sm truncate text-white">Khách truy cập</p>
+                            <p id="user-role" class="text-[10px] text-slate-500 uppercase font-black tracking-widest mt-0.5">Viewer</p>
+                        </div>
+                    </div>
+                    <div id="auth-btn-container">
+                        <button onclick="showLogin()" id="btn-login-trigger" class="w-full flex items-center justify-center gap-2 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-black transition shadow-lg active:scale-95">
+                            <i class="fa-solid fa-key"></i> ĐĂNG NHẬP ADMIN
+                        </button>
+                        <button onclick="handleLogout()" id="btn-logout" class="hidden w-full flex items-center justify-center gap-2 py-3 text-xs font-black text-rose-400 hover:bg-rose-950/30 transition border border-rose-900/50 rounded-xl active:scale-95">
+                            <i class="fa-solid fa-power-off"></i> ĐĂNG XUẤT
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 flex flex-col min-w-0 overflow-hidden relative bg-gray-50/50">
+            <header class="flex h-20 md:h-24 glass-effect border-b px-4 md:px-10 items-center justify-between z-20 shadow-sm">
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleMobileSidebar()" class="md:hidden p-2 text-slate-600 bg-white border rounded-lg shadow-sm">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div class="text-left">
+                        <h2 id="page-title" class="text-xl md:text-2xl font-black text-slate-800 tracking-tight">Trang tổng quan</h2>
+                        <p class="hidden md:block text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-1 opacity-70 italic">Cao Đẳng Bách Khoa Nam Sài Gòn</p>
+                    </div>
+                </div>
+                <div id="admin-actions" class="admin-only-flex hidden items-center gap-4">
+                    <button onclick="openModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 md:px-8 py-2 md:py-3 rounded-xl shadow-xl transition flex items-center gap-3 font-black text-[10px] md:text-xs uppercase active:scale-95">
+                        <i class="fa-solid fa-plus text-sm"></i> <span>THÊM MỚI</span>
+                    </button>
+                </div>
+            </header>
+
+            <div id="main-scroll" class="flex-1 overflow-y-auto p-4 md:p-10">
+                
+                <!-- SECTION: DASHBOARD -->
+                <div id="section-dashboard" class="page-section active space-y-10">
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
+                        <div class="bg-white p-4 md:p-8 rounded-2xl shadow-sm border border-gray-100 text-left">
+                            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Tổng tài sản</p>
+                            <h3 id="stat-total" class="text-2xl md:text-4xl font-black text-slate-800">0</h3>
+                        </div>
+                        <div class="bg-white p-4 md:p-8 rounded-2xl shadow-sm border border-gray-100 text-left">
+                            <p class="text-[10px] text-emerald-500 font-bold uppercase tracking-widest mb-1">Hoạt động</p>
+                            <h3 id="stat-active" class="text-2xl md:text-4xl font-black text-slate-800">0</h3>
+                        </div>
+                        <div class="bg-white p-4 md:p-8 rounded-2xl shadow-sm border border-gray-100 text-left">
+                            <p class="text-[10px] text-amber-500 font-bold uppercase tracking-widest mb-1">Bảo trì</p>
+                            <h3 id="stat-repair" class="text-2xl md:text-4xl font-black text-slate-800">0</h3>
+                        </div>
+                        <div class="bg-white p-4 md:p-8 rounded-2xl shadow-sm border border-gray-100 text-left">
+                            <p class="text-[10px] text-rose-500 font-bold uppercase tracking-widest mb-1">Thanh lý</p>
+                            <h3 id="stat-disposal" class="text-2xl md:text-4xl font-black text-slate-800">0</h3>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                        <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 text-left">
+                            <h4 class="font-black text-slate-800 mb-8 uppercase tracking-tighter italic">Phân loại nhóm tài sản</h4>
+                            <div id="type-distribution" class="space-y-6"></div>
+                        </div>
+                        <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 text-left">
+                            <h4 class="font-black text-slate-800 mb-8 uppercase tracking-tighter italic">Phân bổ theo đơn vị</h4>
+                            <div id="dept-distribution" class="space-y-6"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION: ASSETS LIST -->
+                <div id="section-assets" class="page-section space-y-8">
+                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-wrap gap-4 items-center justify-between">
+                        <div class="flex-1 min-w-[300px] relative">
+                            <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-300"></i>
+                            <input type="text" id="search-input" onkeyup="filterAssets()" placeholder="Tìm tên, mã, người dùng, chức vụ..." class="w-full pl-12 pr-6 py-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none text-sm font-medium transition focus:ring-4 focus:ring-blue-100">
+                        </div>
+                        <div class="flex gap-4">
+                            <select id="filter-dept" onchange="filterAssets()" class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-slate-600 outline-none"></select>
+                            <select id="filter-status" onchange="filterAssets()" class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-slate-600 outline-none">
+                                <option value="">Tình trạng</option>
+                                <option value="Active">Hoạt động tốt</option>
+                                <option value="Repair">Đang bảo trì</option>
+                                <option value="Spare">Dự phòng</option>
+                                <option value="Disposal">Đã thanh lý</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden shadow-xl shadow-slate-200/50">
+                        <div class="overflow-x-auto table-responsive">
+                            <table class="w-full text-left border-collapse">
+                                <thead class="bg-slate-50 border-b border-slate-100">
+                                    <tr>
+                                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Thông tin</th>
+                                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Sở hữu & Chức vụ</th>
+                                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Loại & Đơn vị</th>
+                                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">QR</th>
+                                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Trạng thái</th>
+                                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right admin-only">Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="asset-table-body" class="divide-y divide-slate-50"></tbody>
+                            </table>
+                        </div>
+                        <div id="no-data" class="p-24 text-center hidden">
+                            <i class="fa-solid fa-box-open text-6xl text-slate-200 mb-4"></i>
+                            <p class="text-slate-400 font-bold uppercase tracking-tight">Không tìm thấy tài sản nào</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION: INK MANAGEMENT -->
+                <div id="section-ink" class="page-section space-y-10">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-blue-500 text-left">
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tổng yêu cầu nạp mực</p>
+                            <h4 id="ink-stat-total" class="text-3xl font-black text-slate-800">0</h4>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-amber-500 text-left">
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Đang chờ xử lý</p>
+                            <h4 id="ink-stat-pending" class="text-3xl font-black text-slate-800">0</h4>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-emerald-500 text-left">
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Đã hoàn thành</p>
+                            <h4 id="ink-stat-done" class="text-3xl font-black text-slate-800">0</h4>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                        <div class="lg:col-span-4 admin-only">
+                            <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 space-y-6 text-left">
+                                <h4 class="font-black uppercase tracking-tight text-blue-600"><i class="fa-solid fa-pen-to-square mr-2"></i>Tạo Yêu Cầu Nạp Mực</h4>
+                                <form id="ink-form" class="space-y-4">
+                                    <input type="hidden" id="ink-firestore-id">
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Ngày Đề Xuất</label>
+                                            <input type="date" id="ink-date-propose" required class="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold outline-none">
+                                        </div>
+                                        <div>
+                                            <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Ngày Nạp</label>
+                                            <input type="date" id="ink-date-fill" class="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold outline-none">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Đơn vị *</label>
+                                        <select id="ink-dept" required class="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold outline-none"></select>
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Người yêu cầu *</label>
+                                        <input type="text" id="ink-user" required class="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold outline-none">
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Mã Máy/Model</label>
+                                            <input type="text" id="ink-model" required class="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold outline-none">
+                                        </div>
+                                        <div>
+                                            <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Loại Mực</label>
+                                            <input type="text" id="ink-type-input" required class="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold outline-none">
+                                        </div>
+                                    </div>
+                                    <button type="button" onclick="saveInkRequest()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-xl shadow-lg transition uppercase text-xs">Lưu yêu cầu</button>
+                                </form>
+                            </div>
+                        </div>
+                        <div class="lg:col-span-8">
+                            <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                                <div class="overflow-x-auto table-responsive">
+                                    <table class="w-full text-left border-collapse">
+                                        <thead class="bg-slate-50 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                            <tr>
+                                                <th class="px-6 py-4">NGÀY THÁNG</th>
+                                                <th class="px-6 py-4">ĐƠN VỊ & NGƯỜI DÙNG</th>
+                                                <th class="px-6 py-4">THIẾT BỊ</th>
+                                                <th class="px-6 py-4 text-center">TRẠNG THÁI</th>
+                                                <th class="px-6 py-4 text-right admin-only">THAO TÁC</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="ink-table-body" class="divide-y divide-slate-50 text-xs"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION: DEPARTMENTS -->
+                <div id="section-departments" class="page-section space-y-8">
+                    <div class="bg-white rounded-3xl shadow-sm border border-gray-100 max-w-4xl mx-auto">
+                        <div class="p-8 border-b flex justify-between items-center bg-gray-50/50 rounded-t-3xl">
+                            <h4 class="font-black text-xl tracking-tight uppercase italic text-slate-800">Cơ cấu Phòng ban đơn vị</h4>
+                            <button onclick="openDeptModal()" class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-black text-xs uppercase shadow-lg active:scale-95 transition">+ THÊM ĐƠN VỊ</button>
+                        </div>
+                        <div class="p-4">
+                            <table class="w-full text-left border-collapse">
+                                <thead class="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                    <tr>
+                                        <th class="px-8 py-4">STT</th>
+                                        <th class="px-8 py-4">Tên đơn vị phòng ban</th>
+                                        <th class="px-8 py-4 text-right">Quản lý</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dept-table-body" class="divide-y divide-slate-50"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL: ASSET FORM (ADMIN ONLY) -->
+    <div id="asset-modal" class="fixed inset-0 z-[160] hidden items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-md" onclick="closeModal()"></div>
+        <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-6xl z-10 overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="p-6 border-b flex justify-between items-center bg-gray-50">
+                <h3 id="modal-title" class="text-xl font-black uppercase italic tracking-tight">Chi tiết tài sản</h3>
+                <button onclick="closeModal()" class="w-10 h-10 rounded-full bg-white shadow flex items-center justify-center text-gray-400 hover:text-rose-500"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-8 overflow-y-auto bg-white flex-1 text-left">
+                <form id="asset-form" class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <input type="hidden" id="asset-firestore-id">
+                    <input type="hidden" id="asset-id">
+                    
+                    <div class="space-y-6">
+                        <h5 class="text-[10px] font-black text-blue-600 uppercase tracking-widest">Thông tin chính</h5>
+                        <div>
+                            <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Mã định danh</label>
+                            <input type="text" id="input-code" readonly class="w-full p-3 bg-slate-100 rounded-xl font-mono font-bold text-blue-600 outline-none">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Tên hiển thị *</label>
+                            <input type="text" id="input-name" required class="w-full p-3 border border-slate-200 rounded-xl font-bold outline-none">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Loại thiết bị *</label>
+                            <select id="input-type" onchange="toggleSpecFields()" class="w-full p-3 border border-slate-200 rounded-xl font-bold outline-none">
+                                <option value="PC">Máy tính bộ (PC)</option>
+                                <option value="Laptop">Laptop</option>
+                                <option value="Printer">Máy in</option>
+                                <option value="Scanner">Máy scan</option>
+                                <option value="AirConditioner">Máy lạnh</option>
+                                <option value="Projector">Máy chiếu</option>
+                                <option value="Other">Thiết bị khác</option>
+                            </select>
+                        </div>
+                        <div id="modal-qr-section" class="hidden text-center pt-4 border-t">
+                            <div id="modal-qr-code" class="inline-block p-2 bg-white border rounded-xl shadow-sm"></div>
+                            <button type="button" onclick="downloadModalQR()" class="block w-full mt-2 text-[10px] font-black text-blue-600 uppercase">Tải mã QR Image</button>
+                        </div>
+                    </div>
+
+                    <div class="md:col-span-2 space-y-6">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div>
+                                <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Đơn vị quản lý *</label>
+                                <select id="input-dept" required class="w-full p-3 border border-slate-200 rounded-xl font-bold outline-none"></select>
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Tình trạng *</label>
+                                <select id="input-status" class="w-full p-3 border border-slate-200 rounded-xl font-bold outline-none">
+                                    <option value="Active">Sử dụng tốt</option>
+                                    <option value="Repair">Bảo trì / Sửa chữa</option>
+                                    <option value="Spare">Lưu kho dự phòng</option>
+                                    <option value="Disposal">Đã thanh lý / Ngừng dùng</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Người sở hữu / Sử dụng</label>
+                                <input type="text" id="input-user" class="w-full p-3 border border-slate-200 rounded-xl font-bold outline-none">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Chức vụ</label>
+                                <input type="text" id="input-position" placeholder="VD: Nhân viên / Giảng viên..." class="w-full p-3 border border-slate-200 rounded-xl font-bold outline-none">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Ngày tiếp nhận</label>
+                                <input type="date" id="input-date" class="w-full p-3 border border-slate-200 rounded-xl font-bold outline-none">
+                            </div>
+                        </div>
+
+                        <!-- Nhật ký bảo trì (Dành cho Admin ghi nhận) -->
+                        <div class="p-6 bg-slate-50 rounded-2xl space-y-4 border border-slate-200">
+                            <h6 class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Nhật ký bảo trì & thay thế linh kiện</h6>
+                            <div class="flex gap-2">
+                                <input type="text" id="input-log-text" placeholder="Ghi nhận bảo trì: Thay ổ cứng, nạp gas..." class="flex-1 p-3 rounded-lg border border-slate-200 text-xs font-bold outline-none">
+                                <button type="button" onclick="addMaintenanceLog()" class="px-4 bg-indigo-600 text-white rounded-lg text-xs font-black uppercase active:scale-95">Thêm</button>
+                            </div>
+                            <div id="modal-logs-list" class="space-y-2 max-h-40 overflow-y-auto"></div>
+                        </div>
+
+                        <!-- Cấu hình máy tính -->
+                        <div id="specs-container" class="p-6 bg-slate-50 rounded-2xl grid grid-cols-1 sm:grid-cols-2 gap-4 border border-slate-100">
+                            <input type="text" id="spec-mainboard" placeholder="Mainboard" class="p-3 rounded-lg border border-slate-200 text-sm font-bold outline-none">
+                            <input type="text" id="spec-cpu" placeholder="CPU" class="p-3 rounded-lg border border-slate-200 text-sm font-bold outline-none">
+                            <input type="text" id="spec-ram" placeholder="RAM" class="p-3 rounded-lg border-none text-sm font-bold shadow-sm outline-none">
+                            <input type="text" id="spec-disk" placeholder="Ổ cứng" class="p-3 rounded-lg border-none text-sm font-bold shadow-sm outline-none">
+                            <input type="text" id="spec-monitor" placeholder="Màn hình" class="p-3 rounded-lg border-none text-sm font-bold shadow-sm outline-none">
+                            <input type="text" id="spec-psu" placeholder="Bộ nguồn (PSU)" class="p-3 rounded-lg border-none text-sm font-bold shadow-sm outline-none">
+                        </div>
+
+                        <!-- Cấu hình khác -->
+                        <div id="generic-specs-container" class="hidden p-6 bg-slate-50 rounded-2xl space-y-4 border border-slate-100">
+                            <input type="text" id="spec-generic-model" placeholder="Model / Hãng sản xuất" class="w-full p-3 rounded-lg border-none text-sm font-bold shadow-sm outline-none">
+                            <input type="text" id="spec-generic-detail" placeholder="Thông số kĩ thuật khác" class="w-full p-3 rounded-lg border-none text-sm font-bold shadow-sm outline-none">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="p-6 bg-gray-50 border-t flex justify-end gap-4">
+                <button onclick="closeModal()" class="px-6 py-3 font-bold text-gray-400 uppercase text-xs">Hủy bỏ</button>
+                <button onclick="saveAsset()" class="px-10 py-3 bg-blue-600 text-white rounded-xl font-black uppercase text-xs shadow-lg active:scale-95 transition">Lưu dữ liệu</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: VIEW DETAIL (DÀNH CHO VIEWER XEM) -->
+    <div id="detail-modal" class="fixed inset-0 z-[160] hidden items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-950/90 backdrop-blur-md" onclick="closeDetailModal()"></div>
+        <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl z-10 overflow-hidden flex flex-col max-h-[95vh] relative">
+            <div id="disposal-banner" class="hidden bg-rose-600 text-white text-center py-3 text-[10px] font-black uppercase tracking-[0.3em] sticky top-0 z-20">Thiết bị này đã được thanh lý / ngừng sử dụng</div>
+            
+            <div class="p-10 text-center overflow-y-auto">
+                <div id="view-status-icon" class="mx-auto w-20 h-20 rounded-3xl flex items-center justify-center text-4xl mb-6 shadow-inner"></div>
+                <h4 id="view-asset-code" class="text-sm font-black text-blue-600 font-mono tracking-widest mb-1"></h4>
+                <h3 id="view-asset-name" class="text-3xl font-black text-slate-800 tracking-tight mb-8"></h3>
+                
+                <div class="grid grid-cols-2 gap-4 text-left mb-8">
+                    <div class="bg-slate-50 p-4 rounded-2xl">
+                        <p class="text-[10px] font-black text-slate-400 uppercase mb-1">Loại thiết bị</p>
+                        <p id="view-asset-type" class="font-bold text-slate-700"></p>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-2xl">
+                        <p class="text-[10px] font-black text-slate-400 uppercase mb-1">Đơn vị quản lý</p>
+                        <p id="view-asset-dept" class="font-bold text-slate-700"></p>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-2xl">
+                        <p class="text-[10px] font-black text-slate-400 uppercase mb-1">Người sở hữu</p>
+                        <p id="view-asset-user" class="font-bold text-slate-700"></p>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-2xl">
+                        <p class="text-[10px] font-black text-slate-400 uppercase mb-1">Chức vụ</p>
+                        <p id="view-asset-position" class="font-bold text-slate-700"></p>
+                    </div>
+                </div>
+
+                <div id="view-history" class="text-left border-t pt-8 mb-8">
+                    <h5 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 italic">Lịch sử bảo trì & sửa chữa</h5>
+                    <div id="view-history-list" class="space-y-3"></div>
+                </div>
+
+                <div id="view-specs" class="space-y-3 text-left border-t pt-8">
+                    <h5 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Cấu hình kĩ thuật</h5>
+                    <div id="view-specs-list" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+                </div>
+
+                <button onclick="closeDetailModal()" class="mt-10 w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest active:scale-[0.98]">Đóng cửa sổ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: DEPT FORM -->
+    <div id="dept-modal" class="fixed inset-0 z-[160] hidden items-center justify-center p-4 text-center">
+        <div class="absolute inset-0 bg-slate-950/60" onclick="closeDeptModal()"></div>
+        <div class="bg-white rounded-2xl p-8 w-full max-w-md z-10">
+            <h3 class="text-xl font-black uppercase mb-6 italic">Thông tin Đơn vị</h3>
+            <input type="text" id="input-dept-name" placeholder="Tên phòng ban/đơn vị..." class="w-full p-4 border border-slate-200 rounded-xl font-bold mb-6 outline-none">
+            <div class="flex justify-end gap-4">
+                <button onclick="closeDeptModal()" class="font-bold text-gray-400 uppercase text-xs">Hủy</button>
+                <button onclick="saveDept()" class="bg-blue-600 text-white px-8 py-3 rounded-xl font-black uppercase text-xs active:scale-95 transition">Lưu lại</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load external Script as Module -->
+    <script type="module" src="script.js"></script>
+</body>
+</html>

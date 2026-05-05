@@ -1,0 +1,87 @@
+/* --- Custom Global Styles --- */
+body {
+    font-family: 'Inter', sans-serif;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Sidebar Active State */
+.sidebar-item-active {
+    background-color: #1d4ed8 !important; /* blue-700 */
+    color: white !important;
+    border-left-width: 4px;
+    border-color: #facc15 !important; /* yellow-400 */
+    box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.2);
+}
+
+/* Glassmorphism Effect */
+.glass-effect {
+    backdrop-filter: blur(8px);
+    background: rgba(255, 255, 255, 0.9);
+}
+
+/* Modal and Body Scroll Locking */
+body.modal-open {
+    overflow: hidden;
+}
+
+/* Custom Table Scroll for Mobile */
+.table-responsive {
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Visibility Control for Roles */
+.admin-only {
+    display: none !important;
+}
+
+body.is-admin .admin-only {
+    display: block !important;
+}
+
+body.is-admin .admin-only-flex {
+    display: flex !important;
+}
+
+body.is-admin table .admin-only-cell {
+    display: table-cell !important;
+}
+
+/* Modal Active Animation */
+.modal-active {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+
+/* Content Tab System */
+.page-section {
+    display: none;
+}
+
+.page-section.active {
+    display: block;
+}
+
+/* QR Code Container Styles */
+#modal-qr-code img {
+    margin: 0 auto;
+}
+
+/* Scrollbar Styles */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
